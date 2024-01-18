@@ -362,7 +362,7 @@ class ASIMoWDataModule(pl.LightningDataModule):
         return DataLoader(self.val_ds, batch_size=self.batch_size, num_workers=8, pin_memory=False, drop_last=True)
 
     def test_dataloader(self):
-        return DataLoader(self.test_ds, batch_size=self.batch_size, num_workers=8, pin_memory=False, drop_last=True)
+        return DataLoader(self.test_ids, batch_size=self.batch_size, num_workers=8, pin_memory=False, drop_last=True)
 
 
 
@@ -385,7 +385,7 @@ def load_npy_data(config: argparse.Namespace, val_ids: list[DataSplitId], test_i
 
 
     data_module = ASIMoWDataModule(task=task, batch_size=config.batch_size, n_cycles=config.n_cycles,
-                                   model_id=0, val_data_ids=val_ids, test_data_ids=test_ids)
+                                   val_data_ids=val_ids, test_data_ids=test_ids)
 
     data_module.setup('fit')
 

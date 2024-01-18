@@ -1,0 +1,5 @@
+{
+    "dev.containers.defaultExtensions": [
+        "mutantdino.resourcemonitor"
+    ]
+}

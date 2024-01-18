@@ -252,8 +252,8 @@ class BaseDataloader(ABC):
         Returns:
             pd.DataFrame: preprocessed data
         """
-        log.info(f"Load data from {self.dataset_path}")
+        # log.info(f"Load data from {self.dataset_path}")
         data = load_pickle_file(data_path=self.dataset_path, file_name="dataset.pickle")
-        log.info(f"Transform data {self.dataset_path}")
+        # log.info(f"Transform data {self.dataset_path}")
         data = self.data_transform(data)
         return data

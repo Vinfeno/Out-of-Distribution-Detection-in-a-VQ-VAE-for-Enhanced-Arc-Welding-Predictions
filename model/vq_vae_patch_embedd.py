@@ -145,7 +145,9 @@ class VQVAEPatch(Autoencoder):
         
 
     def forward(self, x):
-        # print("input", x.shape)
+        # print("Input shape:", x.shape)
+        if x.dim() == 2:
+            x = x.unsqueeze(0) 
         x = self.patch_embed(x)
         z_e = self.encoder(x)
         # print("z_e", z_e.shape)
