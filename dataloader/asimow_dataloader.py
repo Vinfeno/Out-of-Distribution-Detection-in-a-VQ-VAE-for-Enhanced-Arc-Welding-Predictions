@@ -362,7 +362,7 @@ class ASIMoWDataModule(pl.LightningDataModule):
         return DataLoader(self.val_ds, batch_size=self.batch_size, num_workers=8, pin_memory=False, drop_last=True)
 
     def test_dataloader(self):
-        return DataLoader(self.test_ids, batch_size=self.batch_size, num_workers=8, pin_memory=False, drop_last=True)
+        return DataLoader(self.test_ds, batch_size=self.batch_size, num_workers=8, pin_memory=False, drop_last=True)
 
 
 

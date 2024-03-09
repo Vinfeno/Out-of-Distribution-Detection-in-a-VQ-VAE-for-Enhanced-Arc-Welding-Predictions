@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 from sklearn.preprocessing import StandardScaler
 import logging as log
 import numpy as np
+import random
 
 
 def shuffle_np(x, y):
@@ -65,6 +66,197 @@ def get_val_test_ids():
             (1, 16)
         )
     }
+
+def get_vs_val_test_ids() -> dict:
+    return {
+        'test_ids': (
+            (1, 16),
+            (1, 20),
+            (1, 21),
+            (2, 16),
+            (2, 20),
+            (2, 21)
+        ),
+        "val_ids":(
+            (1, 11),
+            (1, 14),
+            (1, 15),
+            (1, 19),
+            (2, 11),
+            (2, 14),
+            (2, 15),
+            (2, 19),             
+        ) + get_experiment_ids(3)
+    }
+
+def get_inv_vs_val_test_ids() -> dict:
+    return {
+        'test_ids': (
+            (1, 7),
+            (1, 8),
+            (1, 9),
+            (1, 12),
+            (1, 17),
+            (2, 7),
+            (2, 8),
+            (2, 9),
+            (2, 12),
+            (2, 17),
+        ),
+        'val_ids': (
+            (1, 1),
+            (1, 2),
+            (1, 3),
+            (1, 22),
+            (1, 26),
+            (1, 30),
+            (1, 4),
+            (1, 10),
+            (1, 23),
+            (1, 27),
+            (1, 31),
+            (1, 5),
+            (1, 24),
+            (1, 28),
+            (1, 32),
+            (1, 6),
+            (1, 13),
+            (1, 25),
+            (1, 29),
+            (1, 33),
+            (1, 18),
+            (2, 1),
+            (2, 2),
+            (2, 3),
+            (2, 4),
+            (2, 10),
+            (2, 5),
+            (2, 6),
+            (2, 13),
+            (2, 18),
+        ) + get_experiment_ids(3)
+    }
+
+def get_vd_val_test_ids() -> dict:
+    return {
+        'test_ids' : (
+            (1, 17),
+            (1, 18),
+            (1, 19),
+            (1, 20),
+            (1, 21),
+            (2, 18),
+            (2, 19),
+            (2, 20),
+            (2, 21),
+            (2, 22),
+        ),
+        'val_ids': (
+            (1, 5),
+            (1, 24),
+            (1, 28),
+            (1, 32),
+            (1, 12),
+            (1, 6),
+            (1, 13),
+            (1, 25),
+            (1, 29),
+            (1, 33),
+            (1, 14),
+            (1, 15),
+            (1, 16),
+            (2, 5),
+            (2, 12),
+            (2, 6),
+            (2, 13),
+            (2, 14),
+            (2, 15),
+            (2, 16),
+        ) + get_experiment_ids(3)
+    }
+
+def get_inv_vd_val_test_ids() -> dict:
+    return {
+        'test_ids': (
+            (1, 1),
+            (1, 2),
+            (1, 3),
+            (1, 22),
+            (1, 26),
+            (1, 30),
+            (2, 1),
+            (2, 2),
+            (2, 3),
+
+        ),
+        'val_ids': (
+            (1, 7),
+            (1, 8),
+            (1, 9),
+            (1, 4),
+            (1, 10),
+            (1, 23),
+            (1, 27),
+            (1, 31),
+            (1, 11),
+            (1, 5),
+            (1, 24),
+            (1, 28),
+            (1, 32),
+            (2, 7),
+            (2, 8),
+            (2, 9),
+            (2, 4),
+            (2, 10),
+            (2, 11),
+            (2, 5),
+        ) + get_experiment_ids(3)
+    }
+
+def get_experiment_ids(experiment:int) -> tuple:
+    if experiment == 1:
+        runs = [ 
+                2,  3,  4,  5,  7,  8,  9, 
+                10, 11, 13, 14, 15, 16, 20, 
+                21, 22, 23, 24, 26, 27, 28, 
+                30, 31, 32
+            ]
+    elif experiment == 2:
+        runs = [ 1,  2,  3,  4,  5,  8,  9, 10, 11, 15, 16, 20, 21]
+    elif experiment == 3:
+        runs = list(range(1, 22)) + list(range(23, 33))
+    else:
+        raise ValueError("Select from experimets [1, 2, 3]")
+    return tuple([(experiment, w) for w in runs])
+
+def get_val_test_experiments(experiments:list[int], num_val:int=5, num_test:int=5) -> dict:
+    """
+    Returns a dict with validation and test IDs randomly selected from the given experiments.
+    """
+    if len(experiments) not in [1, 2, 3]:
+        raise ValueError("Pick 1 to 3 experiments")
+    if not set(experiments).issubset([1, 2, 3]):
+        raise ValueError("Select from experiments [1, 2,]")
+
+    ids = ()
+    for e in experiments:
+        ids += get_experiment_ids(e)
+    print(ids)
+    val = random.sample(ids, num_val)
+    for run in val:
+        ids_list = list(ids)
+        ids_list.remove(run)
+        ids = tuple(ids_list)
+    test = random.sample(ids, num_test)
+    for run in test:
+        ids_list = list(ids)
+        ids_list.remove(run)
+        ids = tuple(ids_list)
+    return {
+        'val_ids': tuple(val),
+        'test_ids': tuple(test)
+    }
+
 
 
 def plot_single_CV(x, y):

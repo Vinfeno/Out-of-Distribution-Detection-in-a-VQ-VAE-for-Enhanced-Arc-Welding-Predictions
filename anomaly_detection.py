@@ -240,8 +240,8 @@ def main(hparams):
     for i, dm in enumerate(ex3_datamodules):
         ex3_datamodules[i] = dm.train_dataloader()
 
-
-
+    
+    
     print("#####\tExperiment 1 & 2\t#####")
     embedding_losses_ex_1_2, recon_loss_ex_12, perplexity = get_losses(train_loader_ex1_2, model)
     print_loss_stats(embedding_losses_ex_1_2, recon_loss_ex_12, perplexity)
