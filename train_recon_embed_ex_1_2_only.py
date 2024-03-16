@@ -239,7 +239,7 @@ if __name__ == "__main__":
         "--batchnorm", type=bool, help="Use batch normalization", default=True
     )
     parser.add_argument("--beta", type=float, help="Beta", default=0.25)
-    parser.add_argument("--data-split", type=str, help="ex or ex-inv")
+    parser.add_argument("--data-split", type=str, help="ex or ex-inv", default="ex")
 
     args = parser.parse_args()
 

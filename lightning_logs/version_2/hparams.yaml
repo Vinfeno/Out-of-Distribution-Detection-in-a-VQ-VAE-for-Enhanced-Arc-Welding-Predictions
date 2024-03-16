@@ -1,0 +1,28 @@
+beta: 0.25
+dropout_p: 0.1
+embedding_dim: 32
+hidden_dim: 32
+input_dim: 2
+learning_rate: 0.001
+logger: !!python/object:lightning.pytorch.loggers.csv_logs.CSVLogger
+  _experiment: !!python/object:lightning.pytorch.loggers.csv_logs.ExperimentWriter
+    _fs: &id001 !!python/object/apply:fsspec.spec.make_instance
+    - !!python/name:fsspec.implementations.local.LocalFileSystem ''
+    - !!python/tuple []
+    - {}
+    hparams: {}
+    log_dir: logs/vq-vae-transformer/version_727
+    metrics: []
+    metrics_file_path: logs/vq-vae-transformer/version_727/metrics.csv
+    metrics_keys: []
+  _flush_logs_every_n_steps: 100
+  _fs: *id001
+  _name: vq-vae-transformer
+  _prefix: ''
+  _root_dir: logs
+  _save_dir: logs
+  _version: 727
+n_resblocks: 1
+num_embeddings: 16
+patch_size: 25
+seq_len: 200

@@ -1,0 +1,3 @@
+epoch,train/loss,step,train/recon_error,val/loss,val/recon_error
+0,2.4438626766204834,49,1.0756779909133911,,
+0,,56,,39.10810852050781,1.179961919784546
