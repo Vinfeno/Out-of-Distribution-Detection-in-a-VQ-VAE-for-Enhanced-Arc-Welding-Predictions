@@ -9,6 +9,7 @@ from dataloader.utils import (
     get_val_test_ids,
     get_val_test_experiments,
     get_experiment_ids,
+    get_full_set_ids,
 )
 from model.vq_vae import VectorQuantizedVAE
 from model.vq_vae_patch_embedd import VQVAEPatch
@@ -19,125 +20,6 @@ from lightning import Trainer
 from model.mlp import MLP
 from model.gru import GRU
 from model.classification_model import ClassificationLightningModule
-
-
-# def print_training_input_shape(data_module):
-#     data_module.setup(stage="fit")
-#     val_loader = data_module.val_dataloader()
-#     batch = next(iter(val_loader))
-#     for i in range(len(batch)):
-#         log.info(f"Input {i} shape: {batch[i].shape}")
-
-
-# def classify_latent_space(
-#     latent_model: VectorQuantizedVAE | VQVAEPatch,
-#     logger: CSVLogger | WandbLogger,
-#     val_ids: list[DataSplitId],
-#     test_ids: list[DataSplitId],
-#     n_cycles: int,
-#     model_name: str,
-#     dataset: str,
-#     classification_model: str,
-#     learning_rate: float,
-#     clipping_value: float,
-# ):
-
-#     data_module = LatentPredDataModule(
-#         latent_space_model=latent_model,
-#         model_name=f"{model_name}",
-#         val_data_ids=val_ids,
-#         test_data_ids=test_ids,
-#         n_cycles=n_cycles,
-#         task="classification",
-#         batch_size=128,
-#         model_id=f"{model_name}-{dataset}",
-#     )
-#     print_training_input_shape(data_module)
-
-#     seq_len = n_cycles
-#     input_dim = int(latent_model.embedding_dim * latent_model.enc_out_len)
-
-#     Model: type[MLP] | type[GRU]
-#     if classification_model == "MLP":
-#         Model = MLP
-#     elif classification_model == "GRU":
-#         Model = GRU
-#     else:
-#         raise ValueError(f"Invalid classification model name: {classification_model}")
-
-#     model = Model(
-#         input_size=seq_len,
-#         in_dim=input_dim,
-#         hidden_sizes=128,
-#         dropout_p=0.1,
-#         n_hidden_layers=4,
-#         output_size=2,
-#         learning_rate=learning_rate,
-#     )
-
-#     model_checkpoint_name = f"VQ-VAE-{classification_model}-{dataset}-best"
-#     checkpoint_callback = ModelCheckpoint(
-#         dirpath=f"model_checkpoints/VQ-VAE-{classification_model}/",
-#         monitor=f"val/f1_score",
-#         mode="max",
-#         filename=model_checkpoint_name,
-#     )
-#     early_stop_callback = EarlyStopping(
-#         monitor=f"val/f1_score",
-#         min_delta=0.0001,
-#         patience=10,
-#         verbose=False,
-#         mode="max",
-#     )
-
-#     trainer = Trainer(
-#         max_epochs=1,
-#         logger=logger,
-#         callbacks=[checkpoint_callback, early_stop_callback],
-#         devices=1,
-#         num_nodes=1,
-#         gradient_clip_val=clipping_value,
-#         check_val_every_n_epoch=1,
-#     )
-
-#     trainer.fit(
-#         model=model,
-#         datamodule=data_module,
-#     )
-
-#     best_score = model.hyper_search_value
-#     best_acc_score = model.val_acc_score
-#     print(f"best score: {best_score}")
-#     print("------ Testing ------")
-
-#     trainer = Trainer(
-#         devices=1,
-#         num_nodes=1,
-#         logger=logger,
-#     )
-
-#     # model = Model.load_from_checkpoint(checkpoint_callback.best_model_path)
-#     trainer.test(model=model, dataloaders=data_module)
-#     test_f1_score = model.test_f1_score
-#     test_acc = model.test_acc_score
-
-#     logdict = {
-#         "val/mean_f1_score": best_score,
-#         "val/mean_acc": best_acc_score,
-#         "test/mean_f1_score": test_f1_score,
-#         "test/mean_acc": test_acc,
-#     }
-
-#     if isinstance(logger, CSVLogger):
-#         logger.experiment.log_metrics(logdict)
-#     else:
-#         logger.experiment.log(logdict)
-#         logger.experiment.finish()
-
-#     # clean up dataloader folder
-#     log.info("Cleaning up latent dataloader folder")
-#     data_folder = data_module.latent_dataloader.dataset_path
-#     os.system(f"rm -rf {data_folder}")
 
 
 def main(hparams):
@@ -158,6 +40,7 @@ def main(hparams):
     batchnorm = hparams.batchnorm
     checkpoint_name = hparams.checkpoint_name
     beta = hparams.beta
+    data_split = hparams.data_split
 
     use_wandb = hparams.use_wandb
     wandb_entity = hparams.wandb_entity
@@ -173,10 +56,23 @@ def main(hparams):
     input_dim = 2 if dataset == "asimow" else 1
 
     # load data
-    dataset_dict = get_val_test_experiments([1, 2])
-    val_ids = dataset_dict["val_ids"]
-    # test_ids = dataset_dict["test_ids"]
-    test_ids = get_experiment_ids(3)
+    if data_split == "ex":
+        dataset_dict = get_val_test_experiments([1, 2])
+        val_ids = dataset_dict["val_ids"]
+        # test_ids = dataset_dict["test_ids"]
+        test_ids = get_experiment_ids(3)
+    elif data_split == "ex-inv":
+        dataset_dict = get_val_test_experiments([3])
+        val_ids = dataset_dict["val_ids"]
+        # test_ids = dataset_dict["test_ids"]
+        test_ids = get_experiment_ids(1) + get_experiment_ids(2)
+    elif data_split == "all":
+        dataset_dict = get_full_set_ids()
+        val_ids = dataset_dict["val_ids"]
+        test_ids = dataset_dict["test_ids"]
+    else:
+        raise ValueError(f"invalid split: {data_split}")
+
     logger.log_hyperparams(
         {
             "val_ids": str(val_ids),
@@ -187,7 +83,7 @@ def main(hparams):
     )
     log.info(f"Val ids: {val_ids}")
     log.info(f"Test ids: {test_ids}")
-
+    print(val_ids, test_ids)
     if dataset == "asimow":
         val_ids = [DataSplitId(experiment=e, welding_run=w) for e, w in val_ids]
         test_ids = [DataSplitId(experiment=e, welding_run=w) for e, w in test_ids]
@@ -290,20 +186,7 @@ def main(hparams):
         callbacks=[checkpoint_callback],
     )
 
-    trainer.test(model=model, datamodule=data_module)
-
-    # classify_latent_space(
-    #     latent_model=model,
-    #     logger=logger,
-    #     val_ids=val_ids,
-    #     test_ids=test_ids,
-    #     n_cycles=1,
-    #     model_name=model_name,
-    #     dataset=dataset,
-    #     classification_model="MLP",
-    #     learning_rate=learning_rate,
-    #     clipping_value=clipping_value,
-    # )
+    # trainer.test(model=model, datamodule=data_module)
 
 
 if __name__ == "__main__":
@@ -356,6 +239,7 @@ if __name__ == "__main__":
         "--batchnorm", type=bool, help="Use batch normalization", default=True
     )
     parser.add_argument("--beta", type=float, help="Beta", default=0.25)
+    parser.add_argument("--data-split", type=str, help="ex or ex-inv")
 
     args = parser.parse_args()
 
