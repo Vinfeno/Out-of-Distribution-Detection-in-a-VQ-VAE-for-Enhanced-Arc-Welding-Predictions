@@ -136,7 +136,14 @@ class VQ_Loss_Plotter:
         return df, test_ids
 
     def make_boxplot_all_data(
-        self, title, data_split, image_path, file_name, model_path
+        self,
+        title,
+        data_split,
+        image_path,
+        file_name,
+        model_path,
+        figsize=(10, 10),
+        rotation=45,
     ):
         if data_split not in ["ex", "ex-inv", "vs", "vd", "vs-inv", "vd-inv"]:
             raise ValueError(f"Unknown data split: {data_split}")
@@ -150,11 +157,25 @@ class VQ_Loss_Plotter:
             test_ids=test_ids,
             data_split=data_split,
             file_name=file_name,
+            rotation=rotation,
+            figsize=figsize,
         )
 
-    def make_boxplot(self, df, title, image_path, data_split, test_ids, file_name):
+    def make_boxplot(
+        self,
+        df,
+        title,
+        image_path,
+        data_split,
+        test_ids,
+        file_name,
+        figsize,
+        rotation,
+        xlim=None,
+        ylim=None,
+    ):
         # Move Experiment IDs in test_ids_list to the end of the DataFrame
-        plt.figure(figsize=(20, 10))
+        plt.figure(figsize=figsize)
         df["Experiment ID"] = df["Experiment ID"].apply(
             lambda x: "Train" if x not in test_ids else x
         )
@@ -168,7 +189,7 @@ class VQ_Loss_Plotter:
             eid for eid in df["Experiment ID"].unique() if eid != "Train"
         ]
         # Create the plot
-        sns.boxplot(
+        ax = sns.boxplot(
             data=df,
             x="Experiment ID",
             y="Value",
@@ -177,19 +198,25 @@ class VQ_Loss_Plotter:
             showfliers=False,
             order=order,
         )
+        ax.set(xlabel="Welding Run ID", ylabel="VQ Loss", title=title)
 
         # Hide the legend if you don't want it, as it might not be meaningful in this context
         plt.legend([], [], frameon=False)
-        plt.xticks(rotation=45)
-        lower_limit = float("inf")
-        for unique_experiment in df["Experiment ID"].unique():
-            experiment_quantile = df[df["Experiment ID"] == unique_experiment][
-                "Value"
-            ].quantile(0.25)
-            if experiment_quantile < lower_limit:
-                lower_limit = experiment_quantile
-        lower_limit *= 0.8
-        plt.gca().set_ylim(bottom=lower_limit)  # Set the lower limit of y-axis to 0
+        plt.xticks(rotation=rotation)
+        if xlim is not None:
+            plt.xlim(xlim)
+        if ylim is not None:
+            plt.ylim(ylim)
+        else:
+            lower_limit = float("inf")
+            for unique_experiment in df["Experiment ID"].unique():
+                experiment_quantile = df[df["Experiment ID"] == unique_experiment][
+                    "Value"
+                ].quantile(0.25)
+                if experiment_quantile < lower_limit:
+                    lower_limit = experiment_quantile
+            lower_limit *= 0.8
+            plt.gca().set_ylim(bottom=lower_limit)  # Set the lower limit of y-axis to 0
 
         # split_type = (
         #     "ExperimentSplit"
@@ -198,8 +225,7 @@ class VQ_Loss_Plotter:
         # )
 
         plt.tight_layout()
-
-        plt.savefig(f"{image_path}/{file_name}.png", dpi=300)
+        plt.savefig(f"{image_path}{file_name}.png", dpi=300)
 
     def get_vq_loss_df(self, split_dict, model_path):
 
@@ -233,7 +259,14 @@ class VQ_Loss_Plotter:
         epochs: list,
         embeddings: list,
         betas: list,
+        figsize=(10, 10),
         image_path: str = "images/",
+        title=None,
+        file_name=None,
+        rotation=45,
+        auto_filenames=False,
+        xlim=None,
+        ylim=None,
     ):
         """
         Possible values:
@@ -262,14 +295,21 @@ class VQ_Loss_Plotter:
                             split_dict=split_dict, model_path=model_path
                         )
                         loss_df, test_ids = self.filter_val_data(loss_df, data_split)
-                        title = f"VQ-Losses Split={data_split} Epoch={epoch} Beta={beta} Embeddings={embedding}"
+                        # if title is None:
+                        #     # title = f"VQ-Losses Split={data_split} Epoch={epoch} Beta={beta} Embeddings={embedding}"
+                        if auto_filenames:
+                            file_name = f"VQ-Losses-Split={data_split}Epochs={epoch}-nEmb={embedding}-beta={beta}"
                         self.make_boxplot(
                             df=loss_df,
                             title=title,
                             image_path=image_path,
                             test_ids=test_ids,
                             data_split=data_split,
-                            file_name=f"Split={data_split}-Epochs={epoch}-nEmb={embedding}-beta={beta}",
+                            figsize=figsize,
+                            file_name=file_name,
+                            rotation=rotation,
+                            xlim=xlim,
+                            ylim=ylim,
                         )
                         progress_bar.update(1)
         progress_bar.close()
@@ -278,33 +318,49 @@ class VQ_Loss_Plotter:
         self,
         title,
         image_path,
-        data_split,
         test_df,
         thresholds,
+        figsize,
         file_name=None,
+        amount=0,
+        custom_selection: list = None,
+        xlim=None,
+        ylim=None,
     ) -> None:
         if file_name is None:
             file_name = title
-        plt.figure(figsize=(32, 6))
-        for run in test_df["Experiment ID"].unique().tolist():
-            plt.plot(
+        plt.figure(figsize=figsize)
+        sns.set_palette("bright")
+        if custom_selection is not None:
+            runs_list = custom_selection
+        elif amount == 0:
+            runs_list = test_df["Experiment ID"].unique().tolist()
+        else:
+            runs_list = test_df["Experiment ID"].unique().tolist()[:amount]
+        for run in runs_list:
+            sns.lineplot(
                 test_df[test_df["Experiment ID"] == run].reset_index()["Value"],
                 label=str(run),
             )
-
         # Add horizontal lines
-        plt.axhline(y=thresholds["q1"], color="r", linestyle="--", label="Q1")
-        plt.axhline(y=thresholds["q3"], color="r", linestyle="--", label="Q3")
-        plt.axhline(y=thresholds["mean"], color="r", linestyle="-", label="Mean")
-        # plt.axhline(y=thresholds["p5"], color="r", linestyle=":", label="P5")
-        # plt.axhline(y=thresholds["p95"], color="r", linestyle=":", label="P95")
-
-        plt.title(f"{title}\n Embedding Loss")
+        plt.axhline(
+            y=thresholds["q1"], color="black", linestyle="--", label="Q1", alpha=0.5
+        )
+        plt.axhline(
+            y=thresholds["q3"], color="black", linestyle="--", label="Q3", alpha=0.5
+        )
+        plt.axhline(
+            y=thresholds["mean"], color="black", linestyle="-", label="Mean", alpha=0.5
+        )
+        if ylim is not None:
+            plt.ylim(ylim)
+        if xlim is not None:
+            plt.xlim(xlim)
+        plt.title(title)
         plt.xlabel("Batch")
         plt.ylabel("VQ Loss")
         plt.legend()
         plt.savefig(image_path + file_name + ".png", dpi=400)
-        plt.close()
 
     def get_thresholds(self, loss_df: pd.DataFrame):
         return {
@@ -327,8 +383,13 @@ class VQ_Loss_Plotter:
         epochs: list,
         embeddings: list,
         betas: list,
+        figsize=(10, 10),
         title: str = None,
         image_path: str = "images/",
+        file_name=None,
+        amount=0,
+        xlim=None,
+        ylim=None,
     ):
         """
         Possible values:
@@ -337,6 +398,8 @@ class VQ_Loss_Plotter:
             embeddings=[16, 64, 256],\n
             betas=[0.01, 0.1, 0.25, 0.5, 0.75, 1],
         """
+
+        auto_filenames = True if file_name is None else False
         total_iterations = len(data_splits) * len(epochs) * len(embeddings) * len(betas)
         progress_bar = tqdm(total=total_iterations, desc="Progress")
         # Check if data_split is valid
@@ -360,14 +423,20 @@ class VQ_Loss_Plotter:
                             df=loss_df, data_split=data_split
                         )
                         thresholds = self.get_thresholds(train_loss)
+                        if auto_filenames:
+                            file_name = f"Thresholds-Split={data_split}-Epoch={epoch}-Beta={beta}-Embeddings={embedding}"
                         if title is None:
-                            title = f"Thresholds\nSplit={data_split} Epoch={epoch} Beta={beta} Embeddings={embedding}"
+                            title = f"Thresholds Split={data_split}-Epoch={epoch}-Beta={beta}-Embeddings={embedding}"
                         self.make_threshold_plot(
                             title=title,
                             image_path=image_path + "/",
-                            data_split=data_split,
                             test_df=test_loss,
                             thresholds=thresholds,
+                            figsize=figsize,
+                            file_name=file_name,
+                            amount=amount,
+                            xlim=xlim,
+                            ylim=ylim,
                         )
                         progress_bar.update(1)
         progress_bar.close()
@@ -417,11 +486,10 @@ class VQ_Loss_Plotter:
         embeddings,
         betas,
         image_path: str = "images/Random/",
+        figsize=(10, 10),
     ):
         noise_data = self.get_noise_data()
-        total_iterations = (
-            2 * len(data_splits) * len(epochs) * len(embeddings) * len(betas)
-        )
+        total_iterations = len(data_splits) * len(epochs) * len(embeddings) * len(betas)
         progress_bar = tqdm(total=total_iterations, desc="Progress")
         # Check if data_split is valid
         for data_split in data_splits:
@@ -468,15 +536,8 @@ class VQ_Loss_Plotter:
                             test_ids=test_id,
                             data_split=data_split,
                             file_name=f"Random-Split={data_split}Epochs={epoch}-nEmb={embedding}-beta={beta}",
-                        )
-                        progress_bar.update(1)
-                        self.make_threshold_plot(
-                            title=title,
-                            image_path=image_path,
-                            data_split=data_split,
-                            test_df=noise_loss,
-                            thresholds=self.get_thresholds(loss_df),
-                            file_name=f"Random-Split={data_split}Epochs={epoch}-nEmb={embedding}-beta={beta}",
+                            figsize=figsize,
+                            rotation=0,
                         )
                         progress_bar.update(1)
         progress_bar.close()
