@@ -4,8 +4,7 @@ import pandas as pd
 import torch
 import seaborn as sns
 from matplotlib import pyplot as plt
-from sklearn.discriminant_analysis import StandardScaler
-from torch.utils.data import DataLoader, TensorDataset
+import matplotlib.transforms as transforms
 
 # from anomaly_detection import get_losses
 from dataloader.asimow_dataloader import ASIMoWDataModule
@@ -144,6 +143,10 @@ class VQ_Loss_Plotter:
         model_path,
         figsize=(10, 10),
         rotation=45,
+        custom_selection=None,
+        amount=0,
+        xlim=None,
+        ylim=None,
     ):
         if data_split not in ["ex", "ex-inv", "vs", "vd", "vs-inv", "vd-inv"]:
             raise ValueError(f"Unknown data split: {data_split}")
@@ -159,6 +162,10 @@ class VQ_Loss_Plotter:
             file_name=file_name,
             rotation=rotation,
             figsize=figsize,
+            amount=amount,
+            custom_selection=custom_selection,
+            xlim=xlim,
+            ylim=ylim,
         )
 
     def make_boxplot(
@@ -166,22 +173,39 @@ class VQ_Loss_Plotter:
         df,
         title,
         image_path,
-        data_split,
         test_ids,
         file_name,
         figsize,
         rotation,
         xlim=None,
         ylim=None,
+        custom_selection=None,
+        amount=0,
     ):
         # Move Experiment IDs in test_ids_list to the end of the DataFrame
-        plt.figure(figsize=figsize)
         df["Experiment ID"] = df["Experiment ID"].apply(
             lambda x: "Train" if x not in test_ids else x
         )
-        df["Color"] = [
-            "Train" if x == "Train" else "Other" for x in df["Experiment ID"]
-        ]
+        train = df[df["Experiment ID"] == "Train"]
+        df.drop(df[df["Experiment ID"] == "Train"].index, inplace=True)
+        df = pd.concat([train, df])
+        if custom_selection is not None:
+            runs_list = custom_selection
+        elif amount == 0:
+            runs_list = df["Experiment ID"].unique().tolist()
+        else:
+            runs_list = df["Experiment ID"].unique().tolist()[:amount]
+        fig = plt.figure(figsize=figsize)
+
+        df = df[df["Experiment ID"].isin(runs_list)]
+
+        df["Color"] = "Other"
+
+        # Now, update the 'Color' column where the condition matches, using .loc
+        df = df.copy()
+        df.loc[df["Experiment ID"].apply(lambda x: x not in test_ids), "Color"] = (
+            "Train"
+        )
 
         # Step 2: Define a custom palette
         palette = {"Train": "salmon", "Other": "lightblue"}
@@ -189,6 +213,7 @@ class VQ_Loss_Plotter:
             eid for eid in df["Experiment ID"].unique() if eid != "Train"
         ]
         # Create the plot
+        sns.set_theme(style="ticks")
         ax = sns.boxplot(
             data=df,
             x="Experiment ID",
@@ -202,7 +227,6 @@ class VQ_Loss_Plotter:
 
         # Hide the legend if you don't want it, as it might not be meaningful in this context
         plt.legend([], [], frameon=False)
-        plt.xticks(rotation=rotation)
         if xlim is not None:
             plt.xlim(xlim)
         if ylim is not None:
@@ -217,15 +241,16 @@ class VQ_Loss_Plotter:
                     lower_limit = experiment_quantile
             lower_limit *= 0.8
             plt.gca().set_ylim(bottom=lower_limit)  # Set the lower limit of y-axis to 0
-
-        # split_type = (
-        #     "ExperimentSplit"
-        #     if data_split in ["ex", "ex-inv", "all"]
-        #     else "ParameterSplit"
-        # )
-
+        if rotation != 0:
+            for label in ax.get_xticklabels():
+                label.set_horizontalalignment("right")
+                # Offset in pixels, adjust as needed
+                offset = transforms.ScaledTranslation(5 / 72, 0, fig.dpi_scale_trans)
+                # Apply transformation
+                label.set_transform(label.get_transform() + offset)
+        plt.xticks(rotation=rotation)
         plt.tight_layout()
-        plt.savefig(f"{image_path}{file_name}.png", dpi=300)
+        plt.savefig(f"{image_path}{file_name}.png", dpi=400)
 
     def get_vq_loss_df(self, split_dict, model_path):
 
@@ -267,6 +292,8 @@ class VQ_Loss_Plotter:
         auto_filenames=False,
         xlim=None,
         ylim=None,
+        custom_selection=None,
+        amount=0,
     ):
         """
         Possible values:
@@ -299,17 +326,19 @@ class VQ_Loss_Plotter:
                         #     # title = f"VQ-Losses Split={data_split} Epoch={epoch} Beta={beta} Embeddings={embedding}"
                         if auto_filenames:
                             file_name = f"VQ-Losses-Split={data_split}Epochs={epoch}-nEmb={embedding}-beta={beta}"
+                        print(file_name)
                         self.make_boxplot(
                             df=loss_df,
                             title=title,
                             image_path=image_path,
                             test_ids=test_ids,
-                            data_split=data_split,
                             figsize=figsize,
                             file_name=file_name,
                             rotation=rotation,
                             xlim=xlim,
                             ylim=ylim,
+                            custom_selection=custom_selection,
+                            amount=amount,
                         )
                         progress_bar.update(1)
         progress_bar.close()
@@ -326,6 +355,7 @@ class VQ_Loss_Plotter:
         custom_selection: list = None,
         xlim=None,
         ylim=None,
+        rotation=0,
     ) -> None:
         if file_name is None:
             file_name = title
@@ -338,10 +368,11 @@ class VQ_Loss_Plotter:
         else:
             runs_list = test_df["Experiment ID"].unique().tolist()[:amount]
         for run in runs_list:
-            sns.lineplot(
+            ax = sns.lineplot(
                 test_df[test_df["Experiment ID"] == run].reset_index()["Value"],
                 label=str(run),
             )
+        ax.grid(True)
         # Add horizontal lines
         plt.axhline(
             y=thresholds["q1"], color="black", linestyle="--", label="Q1", alpha=0.5
@@ -356,11 +387,15 @@ class VQ_Loss_Plotter:
             plt.ylim(ylim)
         if xlim is not None:
             plt.xlim(xlim)
+        if rotation != 0:
+            for label in ax.get_xticklabels():
+                label.set_horizontalalignment("right")
         plt.title(title)
         plt.xlabel("Batch")
         plt.ylabel("VQ Loss")
-        plt.legend()
-        plt.savefig(image_path + file_name + ".png", dpi=400)
+        plt.legend(loc="upper right")
+        plt.tight_layout()
+        plt.savefig(image_path + file_name + ".png", dpi=500)
 
     def get_thresholds(self, loss_df: pd.DataFrame):
         return {
@@ -525,8 +560,6 @@ class VQ_Loss_Plotter:
                                 ),
                             ]
                         )
-                        # print(loss_df)
-                        # return
                         test_id = ["Random"]
                         title = "Random "
                         self.make_boxplot(

@@ -1,5 +1,6 @@
 images/
 # Byte-compiled / optimized / DLL files
+raw_cunks/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -8948,3 +8949,9 @@ images/tests/Thresholds/ParameterSplit/Thresholds
 Split=vs Epoch=10 Beta=0.25 Embeddings=16.png
 images/tests/Thresholds/ParameterSplit/Thresholds
 Split=vs-inv Epoch=10 Beta=0.25 Embeddings=16.png
+raw_data.csv
+raw_chunks/chunk_0.pkl
+raw_chunks/chunk_1.pkl
+raw_chunks/experiment_1.pkl
+raw_chunks/experiment_2.pkl
+raw_chunks/experiment_3.pkl
