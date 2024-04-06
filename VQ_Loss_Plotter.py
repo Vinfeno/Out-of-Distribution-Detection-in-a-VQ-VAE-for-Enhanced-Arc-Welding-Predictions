@@ -427,7 +427,7 @@ class VQ_Loss_Plotter:
         ylim=None,
     ):
         """
-        Possible values:
+        Possible values (or anything if models were trained accordingly):
             data_splits=["ex","ex-inv", "vs","vd", "vs-inv", "vd-inv"],\n
             epochs=[10, 20, 30, 50],\n
             embeddings=[16, 64, 256],\n

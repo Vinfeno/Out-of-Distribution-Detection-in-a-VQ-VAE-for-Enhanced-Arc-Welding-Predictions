@@ -176,7 +176,7 @@ def main(hparams):
     trainer.fit(
         model=model,
         datamodule=data_module,
-        batchnorm=batchnorm,
+        # batchnorm=batchnorm,
     )
 
     trainer = Trainer(

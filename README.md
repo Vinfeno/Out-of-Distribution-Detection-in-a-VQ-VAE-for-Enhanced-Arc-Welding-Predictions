@@ -60,29 +60,35 @@ with 16 and 64 embeddings.
 
 ## Plotting VQ Loss
 [VQ_Loss_Plotter](VQ_Loss_Plotter.py) was made to calculate and plot losses for the previously trained models. In the [Notebook](Plotting.ipynb) are some examples on how to use it. The Notebook also contrains some extra utility, including plotting raw data cycles.
+
+First make a plotter, that will load and handle the data.
+```python
+plotter = VQ_Loss_Plotter()
+```
+
 ### Boxplots
 ```python
-VQ_Loss_Plotter.boxplots(
+plotter.boxplots(
     data_splits: list,
     epochs: list,                       
     embeddings: list,
     betas: list,
     figsize=(10, 10),
-    image_path: str = "images/",
+    image_path: str = "images/",    # save path for the plots
     title=None,
-    file_name=None,
-    rotation=45,
-    auto_filenames=False,
+    file_name=None,                 # sets a file name, only applicable if only one plot is made at a time
+    rotation=45,                    # x label rotation
+    auto_filenames=False,           # if True, filenames will be generated automatically; set this to true, if multiple plots are made at once
     xlim=None,
     ylim=None,
-    custom_selection=None, 
-    amount=0
+    custom_selection=None,          # only plots a selection of runs i.e. ((1,2), (1, 3))
+    amount=0                        # will only show a specific number of welding runs; shows all if amount<=0
 )
 ```
 Makes boxplots for the loss of full runs.
 ### Loss Time Series
 ```python
-VQ_Loss_Plotter.thresholds(
+plotter.thresholds(
     data_splits: list,
     epochs: list,
     embeddings: list,
@@ -99,7 +105,7 @@ VQ_Loss_Plotter.thresholds(
 Makes times series plots over batch losses of welding runs with mean, Q1, and Q3 as orientation and possible thresholds for OOD detection.
 ### Noise
 ```python
-VQ_Loss_Plotter.test_on_noise(
+plotter.test_on_noise(
     data_splits,
     epochs,
     embeddings,
@@ -112,7 +118,7 @@ Makes boxplots to compare VQ losses of the model(s) when specific data splits
 are used as input versus a run with random generated noise.
 ### Trained on Full Dataset
 ```python
-VQ_Loss_Plotter.make_boxplot_all_data(
+plotter.make_boxplot_all_data(
     title,
     data_split,
     image_path,
@@ -127,12 +133,12 @@ VQ_Loss_Plotter.make_boxplot_all_data(
 )
 ```
 Makes a boxplot comparison of the loss of the welding runs of a data split when the model specified was trained on the full data set.
-### Plotting Raw Data
+## Plotting Raw Data
 Download **raw_data.csv** from [zenodo](https://zenodo.org/records/10017718) first. Then use
 ```bash
 python raw_data_to_pickle.py
 ```
-to setup and save the dataloaders for the raw data for each welding experiment.
+to setup and save the dataloaders for the raw time series data for each welding experiment.
 The dataloaders can then be used as exemplified in the [Notebook](Plotting.ipynb).
 
 ## Quality Prediction

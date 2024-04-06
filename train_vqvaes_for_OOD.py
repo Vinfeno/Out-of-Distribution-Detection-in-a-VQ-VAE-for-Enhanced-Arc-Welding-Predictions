@@ -55,7 +55,7 @@ def train_ex_split_models(
             for embeddings in num_embeddings:
                 for beta in betas:
                     os.system(
-                        f'python3 train_recon_embed_ex_1_2_only.py --data-split={data_split} --epochs={epochs} --num-embeddings={embeddings} --beta={beta} --checkpoint-name="{data_split}-split-epochs={epochs}-nEmb={embeddings}-beta={beta}"'
+                        f'python3 train_vqvae_experiment_split.py --data-split={data_split} --epochs={epochs} --num-embeddings={embeddings} --beta={beta} --checkpoint-name="{data_split}-split-epochs={epochs}-nEmb={embeddings}-beta={beta}"'
                     )
                     current_ex_trained += 1
                     total_trained += 1
